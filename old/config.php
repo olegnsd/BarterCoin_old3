@@ -2,7 +2,6 @@
 $mysql_conf['host']   = "localhost";
 $mysql_conf['port']   = 3306;
 $mysql_conf['user']   = "barter";
-#$mysql_conf['pass']   = "gq7hjSdKEI6SxsMO";
 $mysql_conf['dbname'] = "barter";
 $mysql_conf['pass']   = "oCcNzedTLChLjIxa_EM";
 
