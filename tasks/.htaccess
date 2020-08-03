@@ -1,0 +1,9 @@
+Order deny,allow
+deny from all
+Allow from 192.168.37.1
+Allow from 192.168.70.0/24
+
+
+
+
+
