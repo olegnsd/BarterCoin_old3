@@ -13,7 +13,7 @@ $operations=array('Ошибка','Активация карты','Перевод
 ob_start();
 include('../inc/template/topmin.php');
 
-ini_set('display_errors', 0);
+ini_set('display_errors', false);
 
 if($operation==0){?><div class="alert alert-danger">Ошибка. Попробуйте перейти с формы на сайте ещё раз</div><?}
 if($operation==2 && strlen($_POST['tonum']) >= 16){
@@ -33,7 +33,7 @@ if($card2['activated']==0 && $card2['black']==0){
         $err[]='Вы ввели неверные данные карты получателя';
     }else{
         $card_pay = 1;
-    } 
+    }
 }
 //определение комиссии
 $comiss_base=mysqli_fetch_assoc(mysqli_query($mysqli,"SELECT comission FROM comissions WHERE `sum`<='". (int)$card1['balance']. "' ORDER BY `sum` DESC LIMIT 1"));
@@ -45,7 +45,7 @@ if($card1['id']){
 if(($_POST['sum']*($comission_act-1))<$mincomission_act)$out=(float)$_POST['sum']+$mincomission_act;
 if(($card1['balance']+$card1['lim'])<$out)$err[]="Недостаточно средств на вашей карте";
 if((float)$_POST['sum']<=0)$err[]="Сумма перевода должна быть больше 0";
-$sum=mysqli_fetch_assoc(mysqli_query($mysqli,"SELECT SUM(sum) FROM transactions WHERE `fromid`=".(int)$card1['id']." AND timestamp > '".date("Y-m-d H:i:s", time()-(30*24*60*60))."'"));  
+$sum=mysqli_fetch_assoc(mysqli_query($mysqli,"SELECT SUM(sum) FROM transactions WHERE `fromid`=".(int)$card1['id']." AND timestamp > '".date("Y-m-d H:i:s", time()-(30*24*60*60))."'"));
 if(($sum['SUM(sum)']+$out)>$card1['monthlim'])$err[]="Превышен месячный лимит";
 }
 if($_POST['new_sms']=='1' && $_POST['delta_sms']=='0'){
@@ -171,7 +171,7 @@ if(checksmscode($_POST['check1'],$_POST['check2'],$card1[phone])){
             <div class="alert alert-success">Перевод успешно завершён</div><br>
         <?}else{?>
             <div class="alert alert-danger">Ошибка</div>
-        <?} 
+        <?}
     }
 }else{?><div class="alert alert-danger">СМС код введён не верно</div><?}
 }
@@ -188,13 +188,13 @@ exit;
 //перевод по номеру телефона
 if($operation==2 && strlen($_POST['tophone']) >= 10){
     $card1=getcard($_POST['fromnum'],$_POST['frommonth'],$_POST['fromyear'],$_POST['fromcvc']);
-    
+
     $phone = clear_phone($_POST['tophone']);
     if(strlen($phone) !=11)$err[]='Вы ввели неверные данные телефона получателя';
     if(substr($phone, 0, 1) != 7 && substr($phone, 0, 1) != 8)$err[]='Допустимы телефоны по России';
     $phone = str_split($phone);
     $phone = implode("{1,1}.*", $phone);
-    $phone = "^.*". $phone . "{1,1}.*$";//SELECT a.* FROM accounts AS a, transactions AS t WHERE a.phone REGEXP '^.*7{1,1}.*9{1,1}.*2{1,1}.*6{1,1}.*0{1,1}.*0{1,1}.*0{1,1}.*1{1,1}.*0{1,1}.*2{1,1}.*6{1,1}.*$' AND t.fromid=a.id ORDER BY t.timestamp DESC LIMIT 1 //79260001026 
+    $phone = "^.*". $phone . "{1,1}.*$";//SELECT a.* FROM accounts AS a, transactions AS t WHERE a.phone REGEXP '^.*7{1,1}.*9{1,1}.*2{1,1}.*6{1,1}.*0{1,1}.*0{1,1}.*0{1,1}.*1{1,1}.*0{1,1}.*2{1,1}.*6{1,1}.*$' AND t.fromid=a.id ORDER BY t.timestamp DESC LIMIT 1 //79260001026
     $card2 = mysqli_fetch_assoc(mysqli_query($mysqli,"SELECT a.* FROM accounts AS a, transactions AS t  WHERE a.phone REGEXP '$phone' AND t.fromid=a.id ORDER BY t.timestamp DESC LIMIT 1"));
     sql_err($mysqli, 'SELECT *.a FROM accounts AS a, transactions AS t');
     if($card2['id']==0){
@@ -218,7 +218,7 @@ if($operation==2 && strlen($_POST['tophone']) >= 10){
     if(($_POST['sum']*($comission_act-1))<$mincomission_act)$out=(float)$_POST['sum']+$mincomission_act;
     if(($card1['balance']+$card1['lim'])<$out)$err[]="Недостаточно средств на вашей карте";
     if((float)$_POST['sum']<=0)$err[]="Сумма перевода должна быть больше 0";
-    $sum=mysqli_fetch_assoc(mysqli_query($mysqli,"SELECT SUM(sum) FROM transactions WHERE `fromid`=".(int)$card1['id']." AND timestamp > '".date("Y-m-d H:i:s", time()-(30*24*60*60))."'"));  
+    $sum=mysqli_fetch_assoc(mysqli_query($mysqli,"SELECT SUM(sum) FROM transactions WHERE `fromid`=".(int)$card1['id']." AND timestamp > '".date("Y-m-d H:i:s", time()-(30*24*60*60))."'"));
     if(($sum['SUM(sum)']+$out)>$card1['monthlim'])$err[]="Превышен месячный лимит";
     }
     if($_POST['new_sms']=='1' && $_POST['delta_sms']=='0'){
@@ -353,7 +353,7 @@ if($operation==2 && strlen($_POST['tophone']) >= 10){
                 <div class="alert alert-success">Перевод успешно завершён</div><br>
             <?}else{?>
                 <div class="alert alert-danger">Ошибка</div>
-            <?} 
+            <?}
         }
 
     }else{?><div class="alert alert-danger">СМС код введён не верно</div><?}
@@ -399,62 +399,83 @@ if($operation==5){include('stock.php');
 if($operation==6){include('pay2.php');
 }
 //Активация
-if($operation==1){
-$card1=getcard($_POST['fromnum'],$_POST['frommonth'],$_POST['fromyear'],$_POST['fromcvc'],0);
-if($card1['id']==0)$err[]='Вы ввели неверные данные карты';
-if($card1['activated'])$err[]='Карта уже активирована';
-if($_POST['lastname']=='' | $_POST['firstname']=='' | $_POST['middlename']=='' | $_POST['phone']=='')$err[]='Вы не заполнили обязательные поля';
-if(!$err[0]){
-if($_POST['check1']=='' & $_POST['check2']==''){
-$smscode=createsmscode($_POST['phone'], '', 2);
-//if(!sms($_POST['phone'],'SMS-kod: '.$smscode[1].'; Aktivaciya karty *'.substr($card1[number],-4))){?><!--<div class="alert alert-danger">Не удалось отправить СМС</div>--><?//}else{
-?><form method="post">
-<input type="hidden" name="check1" value="<?=$smscode[0];?>">
-<input type="hidden" name="action" value="<?=htmlspecialchars($_POST['action']);?>">
-<input type="hidden" name="fromnum" value="<?=htmlspecialchars($_POST['fromnum']);?>">
-<input type="hidden" name="frommonth" value="<?=htmlspecialchars($_POST['frommonth']);?>">
-<input type="hidden" name="fromyear" value="<?=htmlspecialchars($_POST['fromyear']);?>">
-<input type="hidden" name="fromcvc" value="<?=htmlspecialchars($_POST['fromcvc']);?>">
-<input type="hidden" name="lastname" value="<?=htmlspecialchars($_POST['lastname']);?>">
-<input type="hidden" name="firstname" value="<?=htmlspecialchars($_POST['firstname']);?>">
-<input type="hidden" name="middlename" value="<?=htmlspecialchars($_POST['middlename']);?>">
-<input type="hidden" name="phone" value="<?=htmlspecialchars($_POST['phone']);?>">
-
-<div class="form-group"><label>
-<!--
-Код из СМС:
--->
-</label>
-<input type="hidden" class="form-control" name="check2" placeholder="Введите код из СМС"  value="<?=$smscode[1]?>"></div>
-<button type="submit" class="btn btn-success">Активировать карту</button>
-</form><?//}
-}else{
-if(checksmscode($_POST['check1'],$_POST['check2'],$_POST['phone'])){
-//проверка ип
-$ip_user = $_SERVER['HTTP_X_REAL_IP'];
-$ip_arr[] = $ip_user;
-$ip_arr = json_encode($ip_arr);
-mysqli_query($mysqli,"UPDATE `accounts` SET ip_trusted='$ip_arr', `activated`='1', `name1` = '".mysqli_escape_string($mysqli,htmlspecialchars($_POST['lastname']))."', `name2` = '".mysqli_escape_string($mysqli,htmlspecialchars($_POST['firstname']))."', `name3` = '".mysqli_escape_string($mysqli,htmlspecialchars($_POST['middlename']))."', `phone` = '".mysqli_escape_string($mysqli,htmlspecialchars($_POST['phone']))."' WHERE `accounts`.`id` = ".(int)$card1['id'].";");
-//перевести на карту 100 bcr
-$start_bal = 100;
-$card_donor=getcard('1000506236751958');
-transaction($card_donor,$card1,$start_bal, "Занесение ".$start_bal." БР на новую карту ".$card1['number']);
-$card1=getcardbyid($card1['id']);
-//проверить карту на отложенный перевод по номеру карты
-card_for_pay($mysqli, $card1);
-$card1=getcardbyid($card1['id']);
-//проверить карту на отложенный перевод по номеру телефона
-phone_for_pay($mysqli, $card1);
-?><div class="alert alert-success">Карта успешно активирована</div><?
-}else{?><div class="alert alert-danger">СМС код введён не верно</div><?}
-}
-}else{?>
-<div class="alert alert-danger">
-<?foreach($err as $error){
-if($flag)echo(', ');$flag=1;echo($error);
-}?>
-</div>
-<?}
+if ($operation == 1)
+{
+	$card1 = getcard($_POST['fromnum'], $_POST['frommonth'], $_POST['fromyear'], $_POST['fromcvc'], 0);
+	if ($card1['id'] == 0) $err[] = 'Вы ввели неверные данные карты';
+	if ($card1['activated']) $err[] = 'Карта уже активирована';
+	if ($_POST['lastname'] == '' | $_POST['firstname'] == '' | $_POST['middlename'] == '' | $_POST['phone'] == '') $err[] = 'Вы не заполнили обязательные поля';
+	if (!$err[0])
+	{
+		if ($_POST['check1'] == '' & $_POST['check2'] == '')
+		{
+			$smscode = createsmscode($_POST['phone'], '', 2);
+			//if(!sms($_POST['phone'],'SMS-kod: '.$smscode[1].'; Aktivaciya karty *'.substr($card1[number],-4))){?><!--<div class="alert alert-danger">Не удалось отправить СМС</div>--><?//}else{
+			?>
+			<form action="/do/" method="post">
+				<input type="hidden" name="check1" value="<?=$smscode[0];?>">
+				<input type="hidden" name="action" value="<?=htmlspecialchars($_POST['action']);?>">
+				<input type="hidden" name="fromnum" value="<?=htmlspecialchars($_POST['fromnum']);?>">
+				<input type="hidden" name="frommonth" value="<?=htmlspecialchars($_POST['frommonth']);?>">
+				<input type="hidden" name="fromyear" value="<?=htmlspecialchars($_POST['fromyear']);?>">
+				<input type="hidden" name="fromcvc" value="<?=htmlspecialchars($_POST['fromcvc']);?>">
+				<input type="hidden" name="lastname" value="<?=htmlspecialchars($_POST['lastname']);?>">
+				<input type="hidden" name="firstname" value="<?=htmlspecialchars($_POST['firstname']);?>">
+				<input type="hidden" name="middlename" value="<?=htmlspecialchars($_POST['middlename']);?>">
+				<input type="hidden" name="phone" value="<?=htmlspecialchars($_POST['phone']);?>">
+				<div class="form-group">
+					<label><!--Код из СМС:--></label>
+					<input type="hidden" class="form-control" name="check2" placeholder="Введите код из СМС"  value="<?=$smscode[1]?>">
+				</div>
+				<button type="submit" class="btn btn-success">Активировать карту</button>
+			</form>
+			<?
+			//}
+		}
+		else
+		{
+			if (checksmscode($_POST['check1'], $_POST['check2'], $_POST['phone']))
+			{
+				//проверка ип
+				$ip_user = $_SERVER['HTTP_X_REAL_IP'];
+				$ip_arr[] = $ip_user;
+				$ip_arr = json_encode($ip_arr);
+				mysqli_query($mysqli,"UPDATE `accounts` SET ip_trusted='$ip_arr', `activated`='1', `name1` = '".mysqli_escape_string($mysqli,htmlspecialchars($_POST['lastname']))."', `name2` = '".mysqli_escape_string($mysqli,htmlspecialchars($_POST['firstname']))."', `name3` = '".mysqli_escape_string($mysqli,htmlspecialchars($_POST['middlename']))."', `phone` = '".mysqli_escape_string($mysqli,htmlspecialchars($_POST['phone']))."' WHERE `accounts`.`id` = ".(int)$card1['id'].";");
+				//перевести на карту 100 bcr
+				$start_bal = 100;
+				$card_donor=getcard('1000506236751958');
+				transaction($card_donor,$card1,$start_bal, "Занесение ".$start_bal." БР на новую карту ".$card1['number']);
+				$card1 = getcardbyid($card1['id']);
+				//проверить карту на отложенный перевод по номеру карты
+				card_for_pay($mysqli, $card1);
+				$card1 = getcardbyid($card1['id']);
+				//проверить карту на отложенный перевод по номеру телефона
+				phone_for_pay($mysqli, $card1);
+				?>
+				<div class="alert alert-success">Карта успешно активирована</div>
+				<?
+			}
+			else
+			{
+				?>
+				<div class="alert alert-danger">СМС код введён не верно</div>
+				<?
+			}
+		}
+	}
+	else
+	{
+		?>
+		<div class="alert alert-danger">
+			<?foreach($err as $error)
+			{
+				if ($flag) echo(', ');
+				$flag=1;
+				echo($error);
+			}?>
+		</div>
+		<?
+	}
 }
 
 include('../inc/template/bottommin.php');

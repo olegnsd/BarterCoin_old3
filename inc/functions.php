@@ -148,7 +148,7 @@ function pagination($url, $previd, $last, $getnext)
         }
     }
     $return = '<ul class="pager">
-%list% 
+%list%
 </ul>';
     if ($showFirst) {
         $return1 = str_replace('%link%', $url, '<li><a href="%link%">Начало</a>');
@@ -512,7 +512,7 @@ function upload_add($files, $card, $docs_add)
             $myecho = json_encode($myfile);
             `echo " tmp_name: "  $myecho >>/tmp/qaz`;
 
-            // Если ошибок не было 
+            // Если ошибок не было
             if ($error_flag == 0) {
                 // если размер файла больше 512 Кб
                 if ($myfile_size > 6144 * 1024) {
@@ -818,6 +818,50 @@ function phone_for_pay($mysqli, $card1)
         }
     }
     return;
+}
+
+//отложенный платеж по номеру карты (из старого проекта)
+function card_for_pay ($mysqli, $card1)
+{
+	$card_pay = mysqli_fetch_array(mysqli_query($mysqli, "SELECT c.* FROM card_for_pay AS c WHERE c.number=".$card1['number']."  AND status_id<>1 LIMIT 1"));
+	if ($card_pay['id'])
+	{
+		//перевести BCR с карты хозяина
+		//проверка карты хозяина
+		$card_owner = getcardbyid($card_pay['card_rel']);
+		if ($card_owner['black'] == 1 || $card_owner['activated'] == 0) $err[] = 'Ваша карта неактивна заблокирована';
+		//определение комиссии
+		$start_send = $card_pay['amount'];//сумма перевода с карты хозяина
+		$comiss_base = mysqli_fetch_assoc(mysqli_query($mysqli,"SELECT comission FROM comissions WHERE `sum`<='". (int)$card_owner['balance']. "' ORDER BY `sum` DESC LIMIT 1"));
+		if ($comiss_base) $comission_act = 1 + $comiss_base['comission'] / 100;
+		$out = round((float)$start_send * $comission_act, 0);
+		if ($card_owner['id'])
+		{
+			if (($start_send * ($comission_act - 1)) < $mincomission_act) $out = (float)$start_send + $mincomission_act;
+			if (($card_owner['balance'] + $card_owner['lim']) < $out) $err[] = "Недостаточно средств на вашей карте";
+			if ((float)$start_send <= 0) $err[] = "Сумма перевода должна быть больше 0";
+			$sum = mysqli_fetch_assoc(mysqli_query($mysqli,"SELECT SUM(sum) FROM transactions WHERE `fromid`=".(int)$card_owner['id']." AND timestamp > '".date("Y-m-d H:i:s", time() - 2592000)."'"));
+			if (($sum['SUM(sum)'] + $out) > $card_owner['monthlim']) $err[] = "Превышен месячный лимит";
+		}
+		//перевести
+		if (!$err[0])
+		{
+			transaction($card_owner, $card1, $start_send, "Занесение ".$start_send." БР при активации карты ".$card1['number'], 0, $comission_act, $mincomission_act);
+			//обновить статус карты из списка карт для перевода при активации
+			$sql = "UPDATE card_for_pay SET status_id=1, status='Активирована, $start_send BCR переведены', date_act=CURRENT_TIMESTAMP WHERE number=".$card1['number']."";
+			$res = mysqli_query($mysqli, $sql);
+			sql_err($mysqli, 'UPDATE card_for_pay true');
+		}
+		else
+		{
+			//записать ошибку в базу
+			$errs = implode(', ', $err);
+			$sql = "UPDATE card_for_pay SET status='$errs', status_id=2, date_act=CURRENT_TIMESTAMP WHERE number=".$card1['number']."";
+			$res = mysqli_query($mysqli, $sql);
+			sql_err($mysqli, 'UPDATE card_for_pay error');
+		}
+	}
+	return;
 }
 
 //банкоматы
